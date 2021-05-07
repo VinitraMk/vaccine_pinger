@@ -22,9 +22,9 @@ def prepare_urls(base_url, pincodes, age_limit):
 def isSlotAvailableInX(x, age_limit):
     valid_ages = []
     if age_limit == '18' or age_limit == '45':
-        valid_ages = [age_limit]
+        valid_ages = [int(age_limit)]
     else:
-        valid_ages = ['18', '45']
+        valid_ages = [18, 45]
     sessions = x['sessions']
     available_sessions = [y for y in sessions if (y['available_capacity'] > 0 and y['min_age_limit'] in valid_ages)]
     if len(available_sessions) > 0:

@@ -23,7 +23,7 @@ def isSlotAvailableInX(x, age_limit):
     else:
         valid_ages = [18, 45]
     sessions = x['sessions']
-    available_sessions = [y for y in sessions if (y['available_capacity'] == 0 and y['min_age_limit'] in valid_ages)]
+    available_sessions = [y for y in sessions if (y['available_capacity'] > 0 and y['min_age_limit'] in valid_ages)]
     if len(available_sessions) > 0:
         return x
 

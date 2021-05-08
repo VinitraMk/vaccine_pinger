@@ -11,13 +11,15 @@ import smtplib
 from email.message import EmailMessage
 from playsound import playsound
 
-def prepare_urls(base_url, pincodes, age_limit):
+DISTRICT_IDS = {
+    "MUMBAI": 395,
+    "THANE": 392
+}
+
+def prepare_url(base_url, district_id):
     today = datetime.date.today().strftime('%d-%m-%Y')
-    urls = []
-    for pin in pincodes:
-        url = f'{base_url}?pincode={pin}&date={today}'
-        urls.append({"url": url, "pincode": pin})
-    return urls
+    url = f'{base_url}?district_id={district_id}&date={today}'
+    return url
 
 def isSlotAvailableInX(x, age_limit):
     valid_ages = []
@@ -52,67 +54,55 @@ def play_victory():
         music_file = './queen-we-are-the-champions.mp3'
         playsound(music_file, False)
 
-async def start_notification_service(urls, age_limit, user_email):
+def start_notification_service(url, age_limit, pincodes, user_email):
     tomorrow = datetime.datetime.now() + datetime.timedelta(1)
     today = datetime.datetime.now()
-    async with aiohttp.ClientSession() as session:
-        while today < tomorrow:
-            c = 0
-            for url in urls:
-                print(f'\nChecking for pincode {url["pincode"]}\n')
-                async with session.get(url["url"], headers={'cache-control': 'no-cache', 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36'}) as resp:
-                    if resp.status == 200:
-                        centers = await resp.json()
-                        centers = centers['centers']
-                        available_centers = [slot for slot in [isSlotAvailableInX(x, age_limit) for x in centers] if slot]
-                        if len(available_centers) > 0:
-                            print(f'Centers for pin {url["pincode"]}: ',available_centers,'\n')
-                            #send_email(user_email, available_centers)
-                            play_victory()
-                            c = c + 1
-                        else:
-                            print('No centers available :-(\n')
-                    else:
-                        print(f'Request for pin {url["pincode"]} failed: ',resp.status)
-                    await asyncio.sleep(3)
-            if c == len(urls):
-                exit()
+    s = requests.Session()
+    while today < tomorrow:
+        resp = s.get(url, headers={'cache-control': 'no-cache', 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36'})
+        if resp.status_code == 200:
+            centers = resp.json()
+            centers = centers['centers']
+            available_centers = [slot for slot in [isSlotAvailableInX(x, age_limit) for x in centers if str(x['pincode']) in pincodes] if slot]
+            if len(available_centers) > 0:
+                print(f'Centers: ',available_centers,'\n')
+                #send_email(user_email, available_centers)
+                play_victory()
+                c = c + 1
+            else:
+                print('No centers available :-(\n')
+        else:
+            print(f'Request for pin {url["district_id"]} failed: ',resp.status_code)
+        sleep(3)
         
 
 def main():
-    base_api_url = "https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByPin"
+    base_api_url = "https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict"
     valid_age_limits = ['ALL','18','45']
-    pincode_regex = "[0-9]+"
+    pincode_regex= "[0-9]+"
     c=0
+
+    user_email = input("Enter your email: ")
+    district_id = input("Enter district id you are looking in: ")
+    pincodes = input("Enter pin codes to filter in districts separated by spaces: ").split(" ")
+    age_limit = input("Enter age limit. For all ages, enter all else enter 18 or 45: ")
+
     
-    if len(sys.argv)==1:
-        print('\nNo pincodes provided or age limit provided! :-|\n')
-    else:
-        all_args_len = len(sys.argv[1:])
-        age_limit = sys.argv[-1]
-        user_email = sys.argv[1]
-        all_pincodes = []
-        if sys.argv[-1] in valid_age_limits:
-            age_limit = sys.argv[-1]
-            all_pincodes = sys.argv[2:all_args_len]
+
+    for pin in pincodes:
+        if len(pin) == 6 and re.match(pincode_regex, pin):
+            c = c + 1
         else:
-            age_limit = 'ALL'
-            all_pincodes = sys.argv[2:]
+            print(f'District id {pin} is invalid')
+            exit()
 
-        for pin in all_pincodes:
-            if len(pin)==6 and re.match(pincode_regex, pin):
-                c = c + 1
-            else:
-                print(f'Pin {pin} is invalid')
-                exit()
-
-        if c == len(all_pincodes):
-            print('All inputs are valid\n')
-            print('All pincodes:',all_pincodes)
-            print('Age limit', age_limit)
-            print('\nSahi pincode check karke dalna tera responsibility hai, code sirf 6 number ka string check karne wala hai. Yede log ki tarah mumbai ka pincode ka badle delhi ka mat dalna. :-D\n')
-            final_urls = prepare_urls(base_api_url, all_pincodes, age_limit)
-            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-            asyncio.run(start_notification_service(final_urls, age_limit, user_email))
+    if c == len(pincodes):
+        print('All inputs are valid\n')
+        print('District:', district_id)
+        print('All pincodes:',pincodes)
+        print('Age limit', age_limit)
+        print('\nSahi district id check karke dalna tera responsibility hai. Yede log ki tarah mumbai ka district ka badle delhi ka mat dalna. :-D\n')
+        final_url = prepare_url(base_api_url, district_id)
+        start_notification_service(final_url, pincodes, age_limit, user_email)
 
 main()

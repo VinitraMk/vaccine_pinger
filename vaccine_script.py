@@ -34,10 +34,10 @@ def getCenterDetails(center):
 def send_email(user_email, user_password, centers):
     msg = EmailMessage()
     msg['Subject'] = 'Available Slots'
-    msg['From'] = 'vinitramk@gmail.com'
+    msg['From'] = user_email
     msg['To'] = user_email
     message_str = '\n\n'.join([getCenterDetails(c) for c in centers])
-    print(message_str)
+    #print(message_str)
     msg.set_content(message_str)
 
     s = smtplib.SMTP('smtp.gmail.com', 587)
@@ -67,7 +67,8 @@ def start_notification_service(url, age_limit, pincodes, user_email, user_passwo
             available_centers = [slot for slot in [isSlotAvailableInX(x, age_limit) for x in centers if str(x['pincode']) in pincodes] if slot]
             if len(available_centers) > 0:
                 print(f'Centers: ',available_centers,'\n')
-                #send_email(user_email, user_password, available_centers)
+                if send_email == 'y':
+                    send_email(user_email, user_password, available_centers)
                 play_victory()
             else:
                 print('No centers available :-(\n')
@@ -87,9 +88,9 @@ def main():
     district_id = input("Enter district id you are looking in: ")
     pincodes = input("Enter pin codes to filter in districts separated by spaces: ").split(" ")
     age_limit = input("Enter age limit. For all ages, enter all else enter 18 or 45: ")
+    send_email = input("Do you want to receive email notifications of available slots? [y/n]")
 
     
-
     for pin in pincodes:
         if len(pin) == 6 and re.match(pincode_regex, pin):
             c = c + 1
@@ -104,6 +105,6 @@ def main():
         print('Age limit', age_limit)
         print('\nSahi district id check karke dalna tera responsibility hai. Yede log ki tarah mumbai ka district ka badle delhi ka mat dalna. :-D\n')
         final_url = prepare_url(base_api_url, district_id)
-        start_notification_service(final_url, age_limit, pincodes, user_email, user_password)
+        start_notification_service(final_url, age_limit, pincodes, user_email, user_password, send_email)
 
 main()

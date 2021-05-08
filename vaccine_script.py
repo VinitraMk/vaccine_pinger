@@ -3,18 +3,13 @@ import sys
 import re
 import threading
 import datetime
-from time import sleep
+from time import sleep, time
 import aiohttp
 import asyncio
 import json
 import smtplib
 from email.message import EmailMessage
 from playsound import playsound
-
-DISTRICT_IDS = {
-    "MUMBAI": 395,
-    "THANE": 392
-}
 
 def prepare_url(base_url, district_id):
     today = datetime.date.today().strftime('%d-%m-%Y')
@@ -45,14 +40,20 @@ def send_email(user_email, centers):
     print(message_str)
     msg.set_content(message_str)
 
-    s = smtplib.SMTP('localhost')
-    s.send_message(msg)
+    s = smtplib.SMTP('smtp.gmail.com', 587)
+    #s.set_debuglevel(True)
+    s.ehlo()
+    s.starttls()
+    s.login(user_email, 'vinitramk3097')
+    s.sendmail(user_email, user_email, msg.as_string())
     s.quit()
 
 def play_victory():
-    for i in range(3):
-        music_file = './queen-we-are-the-champions.mp3'
+    end = time() + 180
+    while time() < end:
+        music_file = './notification.mp3'
         playsound(music_file, False)
+        sleep(2)
 
 def start_notification_service(url, age_limit, pincodes, user_email):
     tomorrow = datetime.datetime.now() + datetime.timedelta(1)
@@ -66,9 +67,8 @@ def start_notification_service(url, age_limit, pincodes, user_email):
             available_centers = [slot for slot in [isSlotAvailableInX(x, age_limit) for x in centers if str(x['pincode']) in pincodes] if slot]
             if len(available_centers) > 0:
                 print(f'Centers: ',available_centers,'\n')
-                #send_email(user_email, available_centers)
+                send_email(user_email, available_centers)
                 play_victory()
-                c = c + 1
             else:
                 print('No centers available :-(\n')
         else:
@@ -83,6 +83,7 @@ def main():
     c=0
 
     user_email = input("Enter your email: ")
+    user_password = input("Enter your gmail password so you get notifications from your own email: ")
     district_id = input("Enter district id you are looking in: ")
     pincodes = input("Enter pin codes to filter in districts separated by spaces: ").split(" ")
     age_limit = input("Enter age limit. For all ages, enter all else enter 18 or 45: ")
@@ -103,6 +104,6 @@ def main():
         print('Age limit', age_limit)
         print('\nSahi district id check karke dalna tera responsibility hai. Yede log ki tarah mumbai ka district ka badle delhi ka mat dalna. :-D\n')
         final_url = prepare_url(base_api_url, district_id)
-        start_notification_service(final_url, pincodes, age_limit, user_email)
+        start_notification_service(final_url, age_limit, pincodes, user_email)
 
 main()

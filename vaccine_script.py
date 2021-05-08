@@ -67,7 +67,7 @@ def start_notification_service(url, age_limit, pincodes, user_email, user_passwo
             available_centers = [slot for slot in [isSlotAvailableInX(x, age_limit) for x in centers if str(x['pincode']) in pincodes] if slot]
             if len(available_centers) > 0:
                 print(f'Centers: ',available_centers,'\n')
-                send_email(user_email, user_password, available_centers)
+                #send_email(user_email, user_password, available_centers)
                 play_victory()
             else:
                 print('No centers available :-(\n')

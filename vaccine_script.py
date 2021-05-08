@@ -23,7 +23,7 @@ def isSlotAvailableInX(x, age_limit):
     else:
         valid_ages = [18, 45]
     sessions = x['sessions']
-    available_sessions = [y for y in sessions if (y['available_capacity'] > 0 and y['min_age_limit'] in valid_ages)]
+    available_sessions = [y for y in sessions if (y['available_capacity'] == 0 and y['min_age_limit'] in valid_ages)]
     if len(available_sessions) > 0:
         return x
 
@@ -31,7 +31,7 @@ def getCenterDetails(center):
     center_detail = f'Center Id: {center["center_id"]}\nName: {center["name"]}\nAddress: {center["address"]}\nBlock Name: {center["block_name"]}\nPincode: {center["pincode"]}'
     return center_detail
 
-def send_email(user_email, centers):
+def send_email(user_email, user_password, centers):
     msg = EmailMessage()
     msg['Subject'] = 'Available Slots'
     msg['From'] = 'vinitramk@gmail.com'
@@ -44,7 +44,7 @@ def send_email(user_email, centers):
     #s.set_debuglevel(True)
     s.ehlo()
     s.starttls()
-    s.login(user_email, 'vinitramk3097')
+    s.login(user_email, user_password)
     s.sendmail(user_email, user_email, msg.as_string())
     s.quit()
 
@@ -55,7 +55,7 @@ def play_victory():
         playsound(music_file, False)
         sleep(2)
 
-def start_notification_service(url, age_limit, pincodes, user_email):
+def start_notification_service(url, age_limit, pincodes, user_email, user_password):
     tomorrow = datetime.datetime.now() + datetime.timedelta(1)
     today = datetime.datetime.now()
     s = requests.Session()
@@ -67,7 +67,7 @@ def start_notification_service(url, age_limit, pincodes, user_email):
             available_centers = [slot for slot in [isSlotAvailableInX(x, age_limit) for x in centers if str(x['pincode']) in pincodes] if slot]
             if len(available_centers) > 0:
                 print(f'Centers: ',available_centers,'\n')
-                send_email(user_email, available_centers)
+                send_email(user_email, user_password, available_centers)
                 play_victory()
             else:
                 print('No centers available :-(\n')
@@ -104,6 +104,6 @@ def main():
         print('Age limit', age_limit)
         print('\nSahi district id check karke dalna tera responsibility hai. Yede log ki tarah mumbai ka district ka badle delhi ka mat dalna. :-D\n')
         final_url = prepare_url(base_api_url, district_id)
-        start_notification_service(final_url, age_limit, pincodes, user_email)
+        start_notification_service(final_url, age_limit, pincodes, user_email, user_password)
 
 main()
